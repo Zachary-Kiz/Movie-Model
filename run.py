@@ -82,7 +82,7 @@ def getGenres(customerPrefs):
 
     while customGenre not in genreList and customGenre != "np" and customGenre != "v":
         print("Input invalid. Please try again.")
-        customGenre = input("Please enter your prefered genre of movie. If you have no preference, enter 'np'. To view the list of genres, enter v.\n")
+        customGenre = input("Please enter your prefered genre of movie. To view the list of genres, enter v:\n")
 
     if customGenre in genreList:
         customerPrefs["genre(s)"] = customGenre
@@ -107,7 +107,7 @@ def getQuality(customerPrefs):
 
     while customerQual not in check:
         print("Please enter a valid input")
-        customerQual = input( "Enter 1 for a bad movie, 2 for an average movie, or 3 for a good movie. Enter np if you have no preference: ")
+        customerQual = input( "Enter 1 for a bad movie, 2 for an average movie, or 3 for a good movie: ")
 
     if customerQual == "1":
         customerPrefs["rating"] = "bad"
@@ -120,7 +120,6 @@ def getQuality(customerPrefs):
 
 def getRuntime(customerPrefs):
     print("How long do you want the movie to be?")
-    print("Enter np if you have no preference.")
     customRun = input("Enter 1 for less than 90 mins, 2 for less than 120 mins, 3 for less than 150 mins, 4 for more than 150 mins: ")
 
     check = ["1","2","3","4", "np"]
@@ -137,7 +136,50 @@ def getRuntime(customerPrefs):
     elif customRun == "4":
         customerPrefs["runtime"] = "very long"
     elif customRun == "np":
-        customerPrefs["runtime"] = "no preferences"
+        customerPrefs["runtime"] = "no preference"
+
+def getPopularity(customerPrefs):
+
+    print("How popular do you want the movie to be?")
+    custPop = input("Enter N for niche, A for average, P for popular: ")
+
+    check = ["N", "A", "P", "np"]
+    while custPop not in check:
+        print("Please enter a valid input.")
+        custPop = input("Enter N for niche, A for average, P for popular: ")
+
+    if custPop == "np":
+        customerPrefs["popularity"] = "no preference"
+    else:
+        customerPrefs["popularity"] = custPop
+
+def getAge(customerPrefs):
+
+    print("How old do you want the movie to be?")
+    custMil = input("Enter 1 for a movie made in the 1900s, 2 for a movie made in the 2000s")
+    check = ["1","2","np"]
+
+    while custMil not in check:
+        print("Please enter a valid input")
+        custMil = input("Enter 1 for a movie made in the 1900s, 2 for a movie made in the 2000s: ")
+
+    if custMil == "np":
+        customerPrefs["age"] = "no preference"
+        return
+
+    custDec = input("Enter 1 for a movie with decade 10s, 2 for 20s, etc. ")
+    while int(custDec) < 0 or int(custDec) > 9:
+        print("Please enter a valid input")
+        custDec = input("Enter 1 for a movie with decade 10s, 2 for 20s, etc. ")
+
+    while custMil == "2" and (int(custDec) < 0 or int(custDec) > 2):
+        print("Decade does not exist")
+        custDec = input("Enter 1 for a movie with decade 10s, 2 for 20s, etc. ")
+
+    if custMil == "1":
+        customerPrefs["age"] = custMil + "9" + custDec + "0s"
+    else:
+        customerPrefs["age"] = custMil + "0" + custDec + "0s"
 
 
 def main():
@@ -145,10 +187,20 @@ def main():
 
     customerList = []
 
+    print("Enter 'np' to any input to indicate no preference")
+
     for x in range(customerNum):
         customerPrefs = {"genre(s)": "", "rating": "", "runtime": "" , "popularity": "", "age" : ""}
         getGenres(customerPrefs)
+        print()
         getQuality(customerPrefs)
+        print()
+        getRuntime(customerPrefs)
+        print()
+        getPopularity(customerPrefs)
+        print()
+        getAge(customerPrefs)
+        print()
         customerList.append(customerPrefs)
     print(customerList)
 
