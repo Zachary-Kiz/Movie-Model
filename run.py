@@ -1,4 +1,5 @@
 
+from curses.ascii import isdigit
 from bauhaus import Encoding, proposition, constraint
 from bauhaus.utils import count_solutions, likelihood
 
@@ -63,6 +64,54 @@ def example_theory():
 
     return E
 
+def getCustomers():
+    '''
+    This function is used to get the number of customers who wish to rent a movie
+    '''
+    customerNum = input("Please enter the number of customers that wish to rent a movie: ")
+    while customerNum.isdigit() == False:
+        print("Invalid input, please try agian.")
+        customerNum = input("Please enter the number of customers that wish to rent a movie: ")
+    return int(customerNum)
+
+def getGenres(customerPrefs):
+    genreList = ["action", "adventure", "animation", "biography", "comedy", "crime", "drama", 
+    "fantasy", "history", "horror", "mystery", "romance", "sci-fi", "thriller", "western" ]
+
+    customGenre = input("Please enter your prefered genre of movie. If you have no preference, enter 'np'. To view the list of genres, enter v.\n")
+
+    while customGenre not in genreList and customGenre != "np" and customGenre != "v":
+        print("Input invalid. Please try again.")
+        customGenre = input("Please enter your prefered genre of movie. If you have no preference, enter 'np'. To view the list of genres, enter v.\n")
+
+    if customGenre in genreList:
+        customerPrefs["genre(s)"] = customGenre
+
+    elif customGenre == "np":
+        customerPrefs["genre(s)"] = "no preference"
+
+    elif customGenre == "v":
+        for genre in genreList:
+            if genre != "western":
+                print(genre + ", ", end="")
+            else:
+                print(genre)
+        print()
+        getGenres(customerPrefs)
+
+
+
+def main():
+    customerNum = getCustomers()
+
+    customerList = []
+
+    for x in range(customerNum):
+        customerPrefs = {"genre(s)": "", "rating": "", "runtime": "" , "popularity": ""}
+        getGenres(customerPrefs)
+        customerList.append(customerPrefs)
+    print(customerList)
+
 
 if __name__ == "__main__":
 
@@ -71,6 +120,9 @@ if __name__ == "__main__":
     T = T.compile()
     # After compilation (and only after), you can check some of the properties
     # of your model:
+
+    main()
+
     print("\nSatisfiable: %s" % T.satisfiable())
     print("# Solutions: %d" % count_solutions(T))
     print("   Solution: %s" % T.solve())
