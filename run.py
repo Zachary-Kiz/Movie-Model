@@ -99,6 +99,45 @@ def getGenres(customerPrefs):
         print()
         getGenres(customerPrefs)
 
+def getQuality(customerPrefs):
+    print("What quality of movie are you looking for? This program considers IMDB score 0 - 3.9 to be bad, 4 - 6.9 to be average and 7 - 10 to be good")
+    customerQual = input( "Enter 1 for a bad movie, 2 for an average movie, or 3 for a good movie. Enter np if you have no preference: ")
+
+    check = ["1","2","3","np"]
+
+    while customerQual not in check:
+        print("Please enter a valid input")
+        customerQual = input( "Enter 1 for a bad movie, 2 for an average movie, or 3 for a good movie. Enter np if you have no preference: ")
+
+    if customerQual == "1":
+        customerPrefs["rating"] = "bad"
+    elif customerQual == "2":
+        customerPrefs["rating"] = "average"
+    elif customerQual == "3":
+        customerPrefs["rating"] = "good"
+    elif customerQual == "np":
+        customerPrefs["rating"] = "no preference"
+
+def getRuntime(customerPrefs):
+    print("How long do you want the movie to be?")
+    print("Enter np if you have no preference.")
+    customRun = input("Enter 1 for less than 90 mins, 2 for less than 120 mins, 3 for less than 150 mins, 4 for more than 150 mins: ")
+
+    check = ["1","2","3","4", "np"]
+    while customRun not in check:
+        print("Please enter a valid input")
+        customRun = input("Enter 1 for less than 90 mins, 2 for less than 120 mins, 3 for less than 150 mins, 4 for more than 150 mins: ")
+
+    if customRun == "1":
+        customerPrefs["runtime"] = "short"
+    elif customRun == "2":
+        customerPrefs["runtime"] = "average"
+    elif customRun == "3":
+        customerPrefs["runtime"] = "long"
+    elif customRun == "4":
+        customerPrefs["runtime"] = "very long"
+    elif customRun == "np":
+        customerPrefs["runtime"] = "no preferences"
 
 
 def main():
@@ -107,8 +146,9 @@ def main():
     customerList = []
 
     for x in range(customerNum):
-        customerPrefs = {"genre(s)": "", "rating": "", "runtime": "" , "popularity": ""}
+        customerPrefs = {"genre(s)": "", "rating": "", "runtime": "" , "popularity": "", "age" : ""}
         getGenres(customerPrefs)
+        getQuality(customerPrefs)
         customerList.append(customerPrefs)
     print(customerList)
 
