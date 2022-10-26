@@ -64,6 +64,28 @@ def example_theory():
 
     return E
 
+
+import csv
+
+def GetMovies():
+    """
+    imports movie data from .csv file into python program
+    ***NOTE*** .csv file should already be downloaded 
+
+    movie data is organized in a dictionary
+
+    movies = {Series_Title : ('Released_Year', 'Runtime', 'Genre', 'IMDB_Rating', 'Meta_score', 'Gross')}
+    """
+    filename = open('imdb_top_1000.csv', encoding="utf8")
+    file = csv.DictReader(filename)
+    
+    movies = {}
+    
+    for col in file:
+        movies[col['Series_Title']] = col['Released_Year'], col['Runtime'], col['Genre'], col['IMDB_Rating'], col['Meta_score'], col['Gross']
+    
+    return movies
+
 def getCustomers():
     '''
     This function is used to get the number of customers who wish to rent a movie
