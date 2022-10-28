@@ -9,14 +9,6 @@ E = Encoding()
 
 
 # To create propositions, create classes for them first, annotated with "@proposition" and the Encoding
-@proposition(E)
-class BasicPropositions:
-
-    def __init__(self, data):
-        self.data = data
-
-    def __repr__(self):
-        return f"A.{self.data}"
 
 @proposition(E)
 class movieAge:
@@ -63,6 +55,15 @@ class moviePopularity:
     def __repr__(self):
         return f"P.{self.data}"
 
+@proposition(E)
+class reccommendMovie:
+
+    def __init__(self, data):
+        self.data = data
+
+    def __repr__(self):
+        return f"{self.data}"
+
 
 
 # Different classes for propositions are useful because this allows for more dynamic constraint creation
@@ -70,44 +71,51 @@ class moviePopularity:
 # that are instances of this class must be true by using a @constraint decorator.
 # other options include: at most one, exactly one, at most k, and implies all.
 # For a complete module reference, see https://bauhaus.readthedocs.io/en/latest/bauhaus.html
-@constraint.at_least_one(E)
-@proposition(E)
-class FancyPropositions:
-
-    def __init__(self, data):
-        self.data = data
-
-    def __repr__(self):
-        return f"A.{self.data}"
 
 # Call your variables whatever you want
-a = BasicPropositions("a")
-b = BasicPropositions("b")   
-c = BasicPropositions("c")
-d = BasicPropositions("d")
-e = BasicPropositions("e")
-# At least one of these will be true
-x = FancyPropositions("x")
-y = FancyPropositions("y")
-z = FancyPropositions("z")
-
 
 # Build an example full theory for your setting and return it.
 #
 #  There should be at least 10 variables, and a sufficiently large formula to describe it (>50 operators).
 #  This restriction is fairly minimal, and if there is any concern, reach out to the teaching staff to clarify
 #  what the expectations are.
-def example_theory():
-    # Add custom constraints by creating formulas with the variables you created. 
-    E.add_constraint((a | b) & ~x)
-    # Implication
-    E.add_constraint(y >> z)
-    # Negate a formula
-    E.add_constraint(~(x & y))
-    # You can also add more customized "fancy" constraints. Use case: you don't want to enforce "exactly one"
-    # for every instance of BasicPropositions, but you want to enforce it for a, b, and c.:
-    constraint.add_exactly_one(E, a, b, c)
-    print(a.data)
+def example_theory(props, customerPrefs, movies):
+    for key in movies.keys():
+        movieStuff = movies[key]
+        checkYear = movieStuff[0][0:3] + "0s"
+        if checkYear == customerPrefs["age"]:
+            E.add_constraint(props[key]["age"])
+        else:
+            E.add_constraint(~props[key]["age"])
+        run = movieStuff[1]
+        run = run.split(" ")
+        if int(run[0]) <= 120:
+            checkRun = "short"
+        else:
+            checkRun = "long"
+        if checkRun == customerPrefs["runtime"]:
+            E.add_constraint(props[key]["runtime"])
+        else:
+            E.add_constraint(~props[key]["runtime"])
+        genreList = movieStuff[2].split(",")
+        if genreList[0].lower() == customerPrefs["genre(s)"]:
+            E.add_constraint(props[key]["genre"])
+        else:
+            E.add_constraint(~props[key]["genre"])
+        score = movieStuff[3]
+        if float(score) <= 5:
+            check = 'bad'
+        else:
+            check = 'good'
+        if check == customerPrefs["rating"]:
+            E.add_constraint(props[key]["rating"])
+        else:
+            E.add_constraint(~props[key]["rating"])
+
+        E.add_constraint((props[key]["age"] & props[key]["runtime"] & props[key]["genre"] & props[key]["rating"]) >> props[key]["recommend"])
+        
+
+        
 
     return E
 
@@ -133,11 +141,28 @@ def GetMovies():
     
     return movies
 
-#def setUpProps(movies, customerNum):
- #   propsDict = {}
-  #  for key in movies.keys():
-   #     movieDict = movies[key]
-    #    print(movieDict)
+def setUpProps(movies, customerNum):
+    propsDict = {}
+    for key in movies.keys():
+        movieDict = movies[key]
+        year = movieAge(movieDict[0][0:3] + "0s")
+        run = movieDict[1]
+        run = run.split(" ")
+        if int(run[0]) <= 120:
+            runtime = movieRun("short")
+        else:
+            runtime = movieRun("long")
+        genreList = movieDict[2].split(",")
+        genre = movieGenre(genreList[0].lower())
+        if float(movieDict[3]) <= 5.0:
+            rating = movieRating("bad")
+        else:
+            rating = movieRating("good")
+
+        movieRec = reccommendMovie(key)
+        propsDict[key] = {"recommend":movieRec, "age": year, "runtime": runtime, "genre": genre, "rating": rating }
+    return propsDict
+        
 
 def getCustomers():
     '''
@@ -175,8 +200,8 @@ def getGenres(customerPrefs):
         getGenres(customerPrefs)
 
 def getQuality(customerPrefs):
-    print("What quality of movie are you looking for? This program considers IMDB score 0 - 3.9 to be bad, 4 - 6.9 to be average and 7 - 10 to be good")
-    customerQual = input( "Enter 1 for a bad movie, 2 for an average movie, or 3 for a good movie. Enter np if you have no preference: ")
+    print("What quality of movie are you looking for? This program considers IMDB score 0 - 5 to be bad, 5.1 - 10.0 to be good")
+    customerQual = input( "Enter 1 for a bad movie, 2 for a for a good movie. Enter np if you have no preference: ")
 
     check = ["1","2","3","np"]
 
@@ -195,21 +220,17 @@ def getQuality(customerPrefs):
 
 def getRuntime(customerPrefs):
     print("How long do you want the movie to be?")
-    customRun = input("Enter 1 for less than 90 mins, 2 for less than 120 mins, 3 for less than 150 mins, 4 for more than 150 mins: ")
+    customRun = input("Enter 1 for less than 120 mins, 2 for more than 120 mins ")
 
     check = ["1","2","3","4", "np"]
     while customRun not in check:
         print("Please enter a valid input")
-        customRun = input("Enter 1 for less than 90 mins, 2 for less than 120 mins, 3 for less than 150 mins, 4 for more than 150 mins: ")
+        customRun = input("Enter 1 for less than 120 mins, 2 for more than 120 mins ")
 
     if customRun == "1":
         customerPrefs["runtime"] = "short"
     elif customRun == "2":
-        customerPrefs["runtime"] = "average"
-    elif customRun == "3":
         customerPrefs["runtime"] = "long"
-    elif customRun == "4":
-        customerPrefs["runtime"] = "very long"
     elif customRun == "np":
         customerPrefs["runtime"] = "no preference"
 
@@ -258,11 +279,11 @@ def getAge(customerPrefs):
 
 
 def main():
-    customerNum = getCustomers()
+    customerNum = 1
 
     movies = GetMovies()
 
-    #setUpProps(movies, customerNum)
+    props = setUpProps(movies, customerNum)
 
     customerList = []
 
@@ -276,31 +297,25 @@ def main():
         print()
         getRuntime(customerPrefs)
         print()
-        getPopularity(customerPrefs)
-        print()
+        #getPopularity(customerPrefs)
+        #print()
         getAge(customerPrefs)
         print()
         customerList.append(customerPrefs)
-    print(customerList)
 
+    print(customerPrefs)
 
-if __name__ == "__main__":
-
-    T = example_theory()
+    T = example_theory(props, customerPrefs, movies)
     # Don't compile until you're finished adding all your constraints!
     T = T.compile()
     # After compilation (and only after), you can check some of the properties
     # of your model:
-
-    main()
-
-    print("\nSatisfiable: %s" % T.satisfiable())
-    print("# Solutions: %d" % count_solutions(T))
+    print("\nSatisfiable: %s" % T.is_satisfiable())
+    print("# Solutions: %d" % T.count_solutions())
     print("   Solution: %s" % T.solve())
+    
 
-    print("\nVariable likelihoods:")
-    for v,vn in zip([a,b,c,x,y,z], 'abcxyz'):
-        # Ensure that you only send these functions NNF formulas
-        # Literals are compiled to NNF here
-        print(" %s: %.2f" % (vn, likelihood(T, v)))
-    print()
+    
+
+
+main()
