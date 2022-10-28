@@ -18,6 +18,52 @@ class BasicPropositions:
     def __repr__(self):
         return f"A.{self.data}"
 
+@proposition(E)
+class movieAge:
+
+    def __init__(self, data):
+        self.data = data
+
+    def __repr__(self):
+        return f"A.{self.data}"
+
+@proposition(E)
+class movieRun:
+
+    def __init__(self, data):
+        self.data = data
+
+    def __repr__(self):
+        return f"R.{self.data}"
+
+@proposition(E)
+class movieGenre:
+
+    def __init__(self, data):
+        self.data = data
+
+    def __repr__(self):
+        return f"G.{self.data}"
+
+@proposition(E)
+class movieRating:
+
+    def __init__(self, data):
+        self.data = data
+
+    def __repr__(self):
+        return f"I.{self.data}"
+
+@proposition(E)
+class moviePopularity:
+
+    def __init__(self, data):
+        self.data = data
+
+    def __repr__(self):
+        return f"P.{self.data}"
+
+
 
 # Different classes for propositions are useful because this allows for more dynamic constraint creation
 # for propositions within that class. For example, you can enforce that "at least one" of the propositions
@@ -61,6 +107,7 @@ def example_theory():
     # You can also add more customized "fancy" constraints. Use case: you don't want to enforce "exactly one"
     # for every instance of BasicPropositions, but you want to enforce it for a, b, and c.:
     constraint.add_exactly_one(E, a, b, c)
+    print(a.data)
 
     return E
 
@@ -85,6 +132,12 @@ def GetMovies():
         movies[col['Series_Title']] = col['Released_Year'], col['Runtime'], col['Genre'], col['IMDB_Rating'], col['Meta_score'], col['Gross']
     
     return movies
+
+#def setUpProps(movies, customerNum):
+ #   propsDict = {}
+  #  for key in movies.keys():
+   #     movieDict = movies[key]
+    #    print(movieDict)
 
 def getCustomers():
     '''
@@ -206,6 +259,10 @@ def getAge(customerPrefs):
 
 def main():
     customerNum = getCustomers()
+
+    movies = GetMovies()
+
+    #setUpProps(movies, customerNum)
 
     customerList = []
 
