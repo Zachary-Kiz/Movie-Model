@@ -1,0 +1,29 @@
+﻿CONJECTUREPANEL Assignment
+PROOF "∃x.C(x), ∀y.A(y), ∀x.((C(x)∧A(x))→R(x)) ⊢ ∃x.R(x)"
+INFER ∃x.C(x),
+     ∀y.A(y),
+     ∀x.((C(x)∧A(x))→R(x))
+     ⊢ ∃x.R(x)
+FORMULAE
+0 actual i,
+1 R(i),
+2 R(x),
+3 i,
+4 x,
+5 ∃x.R(x),
+6 C(i)∧A(i),
+7 C(i)∧A(i)→R(i),
+8 ∀x.((C(x)∧A(x))→R(x)),
+9 (C(x)∧A(x))→R(x),
+10 (C(i)∧A(i))→R(i),
+11 A(i),
+12 C(i),
+13 ∀y.A(y),
+14 A(y),
+15 y,
+16 ∃x.C(x),
+17 C(x),
+18 ∀x.((C(x)∧A(x))→R(x))
+IS
+SEQ ("∃ elim"[i,C,P,x\3,5,17,4]) (hyp[A\16]) (cut[B,C\11,5]) ("∀ elim"[P,i,x\14,3,15]) (hyp[A\13]) (hyp[A\0]) (cut[B,C\6,5]) ("∧ intro"[A,B\12,11]) (hyp[A\12]) (hyp[A\11]) (cut[B,C\10,5]) ("∀ elim"[P,i,x\9,3,4]) (hyp[A\8]) (hyp[A\0]) (cut[B,C\1,5]) ("→ elim"[A,B\6,1]) (hyp[A\7]) (hyp[A\6]) (cut[B,C\1,5]) (hyp[A\1]) ("∃ intro"[P,i,x\2,3,4]) (hyp[A\1]) (hyp[A\0])
+END
