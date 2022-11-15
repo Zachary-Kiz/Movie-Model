@@ -57,6 +57,16 @@ class moviePopularity:
         return f"P.{self.data}"
 
 @proposition(E)
+
+class movieCertificate:
+
+    def __init__(self, data):
+        self.data = data
+
+    def __repr__(self):
+        return f"C.{self.data}"
+
+@proposition(E)
 class recommendMovie:
 
     def __init__(self, data):
@@ -111,12 +121,19 @@ def example_theory(props, customerPrefs, movies):
             E.add_constraint(props[key]["rating"])
         else:
             E.add_constraint(~props[key]["rating"])
+
+        certificate = movieStuff[1]
+        if certificate == customerPrefs["certificate"]:
+            E.add_constraint(props[key]["certificate"])
+        else:
+            E.add_constraint(~props[key]["certificate"])
         
         E.add_constraint(~props[key]["age"] >> ~props[key]["recommend"])
         E.add_constraint(~props[key]["runtime"] >> ~props[key]["recommend"])
         E.add_constraint(~props[key]["genre"] >> ~props[key]["recommend"])
         E.add_constraint(~props[key]["rating"] >> ~props[key]["recommend"])
-        E.add_constraint((props[key]["age"] & props[key]["runtime"] & props[key]["genre"] & props[key]["rating"]) >> props[key]["recommend"])
+        E.add_constraint(~props[key]["certificate"] >> ~props[key]["recommend"])
+        E.add_constraint((props[key]["age"] & props[key]["runtime"] & props[key]["genre"] & props[key]["rating"] & props[key]["certificate"]) >> props[key]["recommend"])
     
     return E
 
@@ -177,9 +194,10 @@ def setUpProps(movies, customerNum):
             rating = movieRating("bad")
         else:
             rating = movieRating("good")
+        certificate = movieCertificate(movieDict[1])
 
         movieRec = recommendMovie(key)
-        propsDict[key] = {"recommend": movieRec, "age": year, "runtime": runtime, "genre": genre, "rating": rating }
+        propsDict[key] = {"recommend": movieRec, "age": year, "runtime": runtime, "genre": genre, "rating": rating, "certificate": certificate}
     return propsDict
         
 
@@ -339,6 +357,39 @@ def getAge(customerPrefs):
     else:
         customerPrefs["age"] = custMil + "0" + custDec + "0s"
 
+def getCertificate(customerPrefs):
+
+    #Create a list of certificate details
+    certificateList = ["U - Unrestricted Public Exhibition", 
+    "U/A - Parental Guidance Suggested", 
+    "PG-13 - Parents Strongly Cautioned", 
+    "R - Restricted", 
+    "A - Restricted to adults"]
+
+    # Initialize list of movie certificates
+    check = ["U", "U/A", "PG-13", "A", "R", "np"]
+
+    # Get customer's prefered movie certificate
+    custCer = input("Please enter your prefered movie certificate. To view the list of certificates, enter v.\n")
+
+    # Check that input is valid
+    while custCer not in check and custCer != "np" and custCer != "v":
+        print("Please enter a valid input.")
+        custCer = input("Please enter your prefered movie certificate. To view the list of certificates, enter v.\n")
+
+    # Add customers choice to customerPrefs
+    if custCer == "np":
+        customerPrefs["certificate"] = "no preference"
+    elif custCer in check:
+        customerPrefs["certificate"] = custCer
+
+    # Print certificate details if customer chooses this option
+    elif custCer == "v":
+        for certificate in certificateList:
+                print(certificate)
+                print()
+        getCertificate()
+
 
 def main():
     # Get number of customers
@@ -357,7 +408,7 @@ def main():
 
     # For each customer create a dictionary of their preferences and add it to customerList
     for x in range(customerNum):
-        customerPrefs = {"genre": "", "rating": "", "runtime": "" , "popularity": "", "age" : ""}
+        customerPrefs = {"genre": "", "rating": "", "runtime": "" , "popularity": "", "age" : "", "certificate": ""}
         getGenres(customerPrefs)
         print()
         getQuality(customerPrefs)
@@ -367,6 +418,8 @@ def main():
         getPopularity(customerPrefs)
         print()
         getAge(customerPrefs)
+        print()
+        getCertificate(customerPrefs)
         print()
         customerList.append(customerPrefs)
 
