@@ -129,7 +129,7 @@ def GetMovies():
 
     movie data is organized in a dictionary
 
-    movies = {Series_Title : ('Released_Year', 'Runtime', 'Genre', 'IMDB_Rating', 'Meta_score', 'Gross')}
+    movies = {Series_Title : ('Released_Year', 'Certificate', 'Runtime', 'Genre', 'IMDB_Rating', 'Meta_score', 'Gross')}
     """
     filename = open('imdb_top_1000.csv', encoding="utf8")
     file = csv.DictReader(filename)
@@ -137,7 +137,7 @@ def GetMovies():
     movies = {}
     
     for col in file:
-        movies[col['Series_Title']] = col['Released_Year'], col['Runtime'], col['Genre'], col['IMDB_Rating'], col['Meta_score'], col['Gross']
+        movies[col['Series_Title']] = col['Released_Year'], col['Certificate'], col['Runtime'], col['Genre'], col['IMDB_Rating'], col['Meta_score'], col['Gross']
     
     return movies
 
