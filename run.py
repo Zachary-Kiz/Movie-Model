@@ -47,6 +47,7 @@ class movieRating:
         return f"I.{self.data}"
 
 @proposition(E)
+
 class moviePopularity:
 
     def __init__(self, data):
@@ -56,7 +57,7 @@ class moviePopularity:
         return f"P.{self.data}"
 
 @proposition(E)
-class reccommendMovie:
+class recommendMovie:
 
     def __init__(self, data):
         self.data = data
@@ -82,41 +83,41 @@ class reccommendMovie:
 def example_theory(props, customerPrefs, movies):
     for key in movies.keys():
         movieStuff = movies[key]
-        checkYear = movieStuff[0][0:3] + "0s"
+        checkYear = movieStuff[0]
         if checkYear == customerPrefs["age"]:
             E.add_constraint(props[key]["age"])
         else:
             E.add_constraint(~props[key]["age"])
-        run = movieStuff[1]
-        run = run.split(" ")
-        if int(run[0]) <= 120:
+
+        run = movieStuff[2]
+        if int(run) <= 120:
             checkRun = "short"
         else:
             checkRun = "long"
+
         if checkRun == customerPrefs["runtime"]:
             E.add_constraint(props[key]["runtime"])
         else:
             E.add_constraint(~props[key]["runtime"])
-        genreList = movieStuff[2].split(",")
-        if genreList[0].lower() == customerPrefs["genre(s)"]:
+        genreList = movieStuff[3]
+        print(genreList, customerPrefs["genre"])
+        if genreList == customerPrefs["genre"]:
             E.add_constraint(props[key]["genre"])
         else:
             E.add_constraint(~props[key]["genre"])
-        score = movieStuff[3]
-        if float(score) <= 5:
-            check = 'bad'
-        else:
-            check = 'good'
-        if check == customerPrefs["rating"]:
+
+        score = movieStuff[4]
+        if float(score) >= float(customerPrefs["rating"]):
             E.add_constraint(props[key]["rating"])
         else:
             E.add_constraint(~props[key]["rating"])
-
+        
+        E.add_constraint(~props[key]["age"] >> ~props[key]["recommend"])
+        E.add_constraint(~props[key]["runtime"] >> ~props[key]["recommend"])
+        E.add_constraint(~props[key]["genre"] >> ~props[key]["recommend"])
+        E.add_constraint(~props[key]["rating"] >> ~props[key]["recommend"])
         E.add_constraint((props[key]["age"] & props[key]["runtime"] & props[key]["genre"] & props[key]["rating"]) >> props[key]["recommend"])
-        
-
-        
-
+    
     return E
 
 
@@ -138,58 +139,88 @@ def GetMovies():
     
     for col in file:
         movies[col['Series_Title']] = col['Released_Year'], col['Certificate'], col['Runtime'], col['Genre'], col['IMDB_Rating'], col['Meta_score'], col['Gross']
+
     
-    return movies
+    # Make movies easier to compare with customer preferences
+    movieDict = {}
+    for key in movies.keys():
+        movieList = []
+        movieList.append(movies[key][0][0:3] + "0s")
+        movieList.append(movies[key][1])
+        run = movies[key][2].split(" ")
+        movieList.append(run[0])
+        genreList = movies[key][3].split(",")
+        if (len(genreList) > 3):
+            movieList.append(genreList.lower())
+        else:
+            movieList.append(genreList[0].lower())
+        movieList.append(movies[key][4])
+        movieList.append(movies[key][6])
+        movieDict[key] = movieList
+
+    print(movieDict)
+    return movieDict
 
 def setUpProps(movies, customerNum):
     propsDict = {}
     for key in movies.keys():
         movieDict = movies[key]
-        year = movieAge(movieDict[0][0:3] + "0s")
-        run = movieDict[1]
-        run = run.split(" ")
-        if int(run[0]) <= 120:
+        year = movieAge(movieDict[0])
+        run = movieDict[2]
+        if int(run) <= 120:
             runtime = movieRun("short")
         else:
             runtime = movieRun("long")
-        genreList = movieDict[2].split(",")
-        genre = movieGenre(genreList[0].lower())
-        if float(movieDict[3]) <= 5.0:
+        genreList = movieDict[3]
+        genre = movieGenre(genreList)
+        if float(movieDict[4]) <= 5.0:
             rating = movieRating("bad")
         else:
             rating = movieRating("good")
 
-        movieRec = reccommendMovie(key)
-        propsDict[key] = {"recommend":movieRec, "age": year, "runtime": runtime, "genre": genre, "rating": rating }
+        movieRec = recommendMovie(key)
+        propsDict[key] = {"recommend": movieRec, "age": year, "runtime": runtime, "genre": genre, "rating": rating }
     return propsDict
         
 
 def getCustomers():
     '''
     This function is used to get the number of customers who wish to rent a movie
+    Returns an integer value representing the number of customers
     '''
     customerNum = input("Please enter the number of customers that wish to rent a movie: ")
-    while customerNum.isdigit() == False:
-        print("Invalid input, please try agian.")
+    while customerNum.isdigit() == False or int(customerNum) <= 0:
+        print("Invalid input, please try again.")
         customerNum = input("Please enter the number of customers that wish to rent a movie: ")
     return int(customerNum)
 
 def getGenres(customerPrefs):
+    """
+    This function is used to get the customer's prefered genre of movie and add it to the
+    customer dictionary
+    Parameters: customerPrefs - dictionary of customer movie preferences
+    """
+
+    # Initialize list of movie genres
     genreList = ["action", "adventure", "animation", "biography", "comedy", "crime", "drama", 
     "fantasy", "history", "horror", "mystery", "romance", "sci-fi", "thriller", "western" ]
 
-    customGenre = input("Please enter your prefered genre of movie. If you have no preference, enter 'np'. To view the list of genres, enter v.\n")
+    # Get customer's prefered genre of movie
+    customGenre = input("Please enter your prefered genre of movie. To view the list of genres, enter v.\n")
 
+    # Check that input is valid
     while customGenre not in genreList and customGenre != "np" and customGenre != "v":
         print("Input invalid. Please try again.")
         customGenre = input("Please enter your prefered genre of movie. To view the list of genres, enter v:\n")
 
+    # Add customers choice to customerPrefs
     if customGenre in genreList:
-        customerPrefs["genre(s)"] = customGenre
+        customerPrefs["genre"] = customGenre
 
     elif customGenre == "np":
-        customerPrefs["genre(s)"] = "no preference"
+        customerPrefs["genre"] = "no preference"
 
+    # Print list of genres if customer chooses this option
     elif customGenre == "v":
         for genre in genreList:
             if genre != "western":
@@ -199,34 +230,47 @@ def getGenres(customerPrefs):
         print()
         getGenres(customerPrefs)
 
+
+
 def getQuality(customerPrefs):
-    print("What quality of movie are you looking for? This program considers IMDB score 0 - 5 to be bad, 5.1 - 10.0 to be good")
-    customerQual = input( "Enter 1 for a bad movie, 2 for a for a good movie. Enter np if you have no preference: ")
+    """
+    This function prompts the customer what quality of movie they want. Whether a movie is good or not is 
+    determined by IMDB scores
+    Parameters: customerPrefs - dictionary of the customer's movie preferences
+    """
+    # Prompt the customer on what quality of movie they are looking for
+    print("What quality of movie are you looking for? This program uses IMDB scores to determine quality")
+    customerQual = input( "Enter a number from 0-9 to indicate the minimum level of quality: ")
 
-    check = ["1","2","3","np"]
+    check = ["0","1","2","3","4","5","6","7","8","9","np"]
 
+    # Check that input is valid
     while customerQual not in check:
         print("Please enter a valid input")
-        customerQual = input( "Enter 1 for a bad movie, 2 for an average movie, or 3 for a good movie: ")
+        customerQual = input("Enter a number from 0-9 to indicate the minimum level of quality: ")
 
-    if customerQual == "1":
-        customerPrefs["rating"] = "bad"
-    elif customerQual == "2":
-        customerPrefs["rating"] = "average"
-    elif customerQual == "3":
-        customerPrefs["rating"] = "good"
-    elif customerQual == "np":
+    # Add customer preference to dictionary customerPrefs
+    if customerQual == "np":
         customerPrefs["rating"] = "no preference"
+    else:
+        customerPrefs["rating"] = customerQual
 
 def getRuntime(customerPrefs):
+    """
+    This function prompts the user for their prefered movie runtime
+    Parameters: customerPrefs - dictionary of the customer's movie preferences
+    """
+    # Prompt customer for prefered movie runtime
     print("How long do you want the movie to be?")
     customRun = input("Enter 1 for less than 120 mins, 2 for more than 120 mins ")
 
+    # Check if input is valid
     check = ["1","2","3","4", "np"]
     while customRun not in check:
         print("Please enter a valid input")
         customRun = input("Enter 1 for less than 120 mins, 2 for more than 120 mins ")
 
+    # Add customer preference to dictionary customerPrefs
     if customRun == "1":
         customerPrefs["runtime"] = "short"
     elif customRun == "2":
@@ -235,35 +279,52 @@ def getRuntime(customerPrefs):
         customerPrefs["runtime"] = "no preference"
 
 def getPopularity(customerPrefs):
+    """
+    This movie prompts the user for how popular they want the movie to be
+    Popularity is decided based on box office results
+    Parameters: customerPrefs - dictionary of the customer's movie preferences
+    """
 
+    # Prompt customer for their preference
     print("How popular do you want the movie to be?")
     custPop = input("Enter N for niche, A for average, P for popular: ")
 
+    # Check if input is valid
     check = ["N", "A", "P", "np"]
     while custPop not in check:
         print("Please enter a valid input.")
         custPop = input("Enter N for niche, A for average, P for popular: ")
 
+    # Add preference to dictionary customerPrefs
     if custPop == "np":
         customerPrefs["popularity"] = "no preference"
     else:
         customerPrefs["popularity"] = custPop
 
 def getAge(customerPrefs):
-
+    """
+    This function prompts the user for their prefered decade of movie
+    Parameters: customerPrefs - dictionary of the customer's movie preferences
+    """
+    # Prompt user for their prefered millenium of movie
     print("How old do you want the movie to be?")
     custMil = input("Enter 1 for a movie made in the 1900s, 2 for a movie made in the 2000s")
     check = ["1","2","np"]
 
+    # Check if input is valid
     while custMil not in check:
         print("Please enter a valid input")
         custMil = input("Enter 1 for a movie made in the 1900s, 2 for a movie made in the 2000s: ")
 
+    # If customer has no preference, add it to dictionary and end function
     if custMil == "np":
         customerPrefs["age"] = "no preference"
         return
 
+    # Prompt user for prefered decade of movie
     custDec = input("Enter 1 for a movie with decade 10s, 2 for 20s, etc. ")
+
+    # Check that inputs are valid
     while int(custDec) < 0 or int(custDec) > 9:
         print("Please enter a valid input")
         custDec = input("Enter 1 for a movie with decade 10s, 2 for 20s, etc. ")
@@ -272,6 +333,7 @@ def getAge(customerPrefs):
         print("Decade does not exist")
         custDec = input("Enter 1 for a movie with decade 10s, 2 for 20s, etc. ")
 
+    # Add customer preference to dictionary customerPrefs
     if custMil == "1":
         customerPrefs["age"] = custMil + "9" + custDec + "0s"
     else:
@@ -279,26 +341,31 @@ def getAge(customerPrefs):
 
 
 def main():
-    customerNum = 1
+    # Get number of customers
+    customerNum = getCustomers()
 
+    # Put movies in dictionary
     movies = GetMovies()
 
+    #Set up movie propositions
     props = setUpProps(movies, customerNum)
 
+    # Initialize list of customer decisions
     customerList = []
 
     print("Enter 'np' to any input to indicate no preference")
 
+    # For each customer create a dictionary of their preferences and add it to customerList
     for x in range(customerNum):
-        customerPrefs = {"genre(s)": "", "rating": "", "runtime": "" , "popularity": "", "age" : ""}
+        customerPrefs = {"genre": "", "rating": "", "runtime": "" , "popularity": "", "age" : ""}
         getGenres(customerPrefs)
         print()
         getQuality(customerPrefs)
         print()
         getRuntime(customerPrefs)
         print()
-        #getPopularity(customerPrefs)
-        #print()
+        getPopularity(customerPrefs)
+        print()
         getAge(customerPrefs)
         print()
         customerList.append(customerPrefs)
@@ -310,9 +377,10 @@ def main():
     T = T.compile()
     # After compilation (and only after), you can check some of the properties
     # of your model:
-    print("\nSatisfiable: %s" % T.is_satisfiable())
-    print("# Solutions: %d" % T.count_solutions())
+    # print("\nSatisfiable: %s" % T.is_satisfiable())
+    #print("# Solutions: %d" % T.count_solutions())
     print("   Solution: %s" % T.solve())
+    
     
 
     
