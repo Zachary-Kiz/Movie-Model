@@ -6,6 +6,19 @@ from bauhaus.utils import count_solutions, likelihood
 # Encoding that will store all of your constraints
 E = Encoding()
 
+def getCustomers():
+    '''
+    This function is used to get the number of customers who wish to rent a movie
+    Returns an integer value representing the number of customers
+    '''
+    customerNum = input("Please enter the number of customers that wish to rent a movie: ")
+    while customerNum.isdigit() == False or int(customerNum) <= 0:
+        print("Invalid input, please try again.")
+        customerNum = input("Please enter the number of customers that wish to rent a movie: ")
+    return int(customerNum)
+
+customerNum = getCustomers()
+
 
 
 # To create propositions, create classes for them first, annotated with "@proposition" and the Encoding
@@ -69,11 +82,12 @@ class movieCertificate:
 @proposition(E)
 class recommendMovie:
 
-    def __init__(self, data):
-        self.data = data
+    def __init__(self, customer, name):
+        self.data = customer
+        self.name = name
 
     def __repr__(self):
-        return f"{self.data}"
+        return f"{self.data} = {self.name}"
 
 @proposition(E)
 class rentMovie:
@@ -105,11 +119,13 @@ def example_theory(props, customerPrefs, movies):
     Function used to create constraints
 
     """
+    
     for x in range(len(customerPrefs)):
+        allRecs = []
         for key in movies.keys():
             movieStuff = movies[key]
             checkYear = movieStuff[0]
-            if checkYear == customerPrefs[x]["age"]:
+            if checkYear == customerPrefs[x]["age"] or customerPrefs[x]["age"] == "no preference":
                 E.add_constraint(props[x+1][key]["age"])
             else:
                 E.add_constraint(~props[x+1][key]["age"])
@@ -120,24 +136,26 @@ def example_theory(props, customerPrefs, movies):
             else:
                 checkRun = "long"
 
-            if checkRun == customerPrefs[x]["runtime"]:
+            if checkRun == customerPrefs[x]["runtime"] or customerPrefs[x]["runtime"] == "no preference":
                 E.add_constraint(props[x+1][key]["runtime"])
             else:
                 E.add_constraint(~props[x+1][key]["runtime"])
             genreList = movieStuff[3]
-            if genreList == customerPrefs[x]["genre"]:
+            if genreList == customerPrefs[x]["genre"] or customerPrefs[x]["genre"] == "no preference":
                 E.add_constraint(props[x+1][key]["genre"])
             else:
                 E.add_constraint(~props[x+1][key]["genre"])
 
             score = movieStuff[4]
-            if float(score) >= float(customerPrefs[x]["rating"]):
+            if customerPrefs[x]["rating"] == "no preference":
+                E.add_constraint(props[x+1][key]["rating"])
+            elif float(score) >= float(customerPrefs[x]["rating"]):
                 E.add_constraint(props[x+1][key]["rating"])
             else:
                 E.add_constraint(~props[x+1][key]["rating"])
 
             certificate = movieStuff[1]
-            if certificate == customerPrefs[x]["certificate"]:
+            if certificate == customerPrefs[x]["certificate"] or customerPrefs[x]["certificate"] == "no preference":
                 E.add_constraint(props[x+1][key]["certificate"])
             else:
                 E.add_constraint(~props[x+1][key]["certificate"])
@@ -147,9 +165,18 @@ def example_theory(props, customerPrefs, movies):
             E.add_constraint(~props[x+1][key]["genre"] >> ~props[x+1][key]["recommend"])
             E.add_constraint(~props[x+1][key]["rating"] >> ~props[x+1][key]["recommend"])
             E.add_constraint(~props[x+1][key]["certificate"] >> ~props[x+1][key]["recommend"])
-            E.add_constraint((props[x+1][key]["age"] & props[x+1][key]["runtime"] & props[x+1][key]["genre"] & props[x+1][key]["rating"] & props[x+1][key]["certificate"]) >> props[x+1][key]["recommend"])
+            allRecs.append(props[x+1][key]["recommend"])
+    
+        constraint.add_exactly_one(E,allRecs)
+        for key in movies.keys():
+            movieVer = []
+            for x in range(customerNum):
+                movieVer.append(props[x+1][key]["recommend"])
+            constraint.add_at_most_one(E,movieVer)
 
+        
 
+        
     return E
 
 
@@ -168,11 +195,13 @@ def GetMovies():
     file = csv.DictReader(filename)
     
     movies = {}
-    
+    x= 0
     for col in file:
         movies[col['Series_Title']] = col['Released_Year'], col['Certificate'], col['Runtime'], col['Genre'], col['IMDB_Rating'], col['Meta_score'], col['Gross']
-
-    
+        if x == 10:
+            break
+        x+=1
+        
     # Make movies easier to compare with customer preferences
     movieDict = {}
     for key in movies.keys():
@@ -216,22 +245,13 @@ def setUpProps(movies, customerNum):
             genre = movieGenre(genreList)
             rating = movieRating(movieDict[4])
             certificate = movieCertificate(movieDict[1])
-            movieRec = recommendMovie(key)
+            movieRec = recommendMovie(x+1,key)
             propsDict[key] = {"recommend": movieRec, "age": year, "runtime": runtime, "genre": genre, "rating": rating, "certificate": certificate }
         allProps[x+1] = propsDict
     return allProps
         
 
-def getCustomers():
-    '''
-    This function is used to get the number of customers who wish to rent a movie
-    Returns an integer value representing the number of customers
-    '''
-    customerNum = input("Please enter the number of customers that wish to rent a movie: ")
-    while customerNum.isdigit() == False or int(customerNum) <= 0:
-        print("Invalid input, please try again.")
-        customerNum = input("Please enter the number of customers that wish to rent a movie: ")
-    return int(customerNum)
+
 
 def getGenres(customerPrefs):
     """
@@ -347,7 +367,7 @@ def getAge(customerPrefs):
     """
     # Prompt user for their prefered millenium of movie
     print("How old do you want the movie to be?")
-    custMil = input("Enter 1 for a movie made in the 1900s, 2 for a movie made in the 2000s")
+    custMil = input("Enter 1 for a movie made in the 1900s, 2 for a movie made in the 2000s: ")
     check = ["1","2","np"]
 
     # Check if input is valid
@@ -388,7 +408,7 @@ def getCertificate(customerPrefs):
     "A - Restricted to adults"]
 
     # Initialize list of movie certificates
-    check = ["U", "U/A", "PG-13", "A", "R", "np"]
+    check = ["U", "UA", "PG-13", "A", "R", "np"]
 
     # Get customer's prefered movie certificate
     custCer = input("Please enter your prefered movie certificate. To view the list of certificates, enter v.\n")
@@ -413,8 +433,6 @@ def getCertificate(customerPrefs):
 
 
 def main():
-    # Get number of customers
-    customerNum = getCustomers()
 
     # Put movies in dictionary
     movies = GetMovies()
@@ -453,11 +471,22 @@ def main():
     # of your model:
     print("\nSatisfiable: %s" % T.satisfiable())
     print("# Solutions: %d" % count_solutions(T))
-    print("   Solution: %s" % T.solve())
+    solution = T.solve()
+    solDict = {}
+    if solution != None:
+        for key,value in solution.items():
+            key = str(key)
+            if key[1] != "." and value:
+                solDict[key] = value
+        print(solDict) 
+    else:
+        print("No solution")       
+    
     
     
 
     
+# Get number of customers
 
 
 main()
