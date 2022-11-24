@@ -140,6 +140,20 @@ def example_theory(props, customerPrefs, movies):
                 E.add_constraint(props[x+1][key]["runtime"])
             else:
                 E.add_constraint(~props[x+1][key]["runtime"])
+
+            pop = movieStuff[6]
+            if int(pop) < 50000000:
+                checkPop = moviePopularity("N")
+            elif int(pop) < 100000000:
+                checkPop = moviePopularity("A")
+            else:
+                checkPop = moviePopularity("P")
+
+            if checkPop == customerPrefs[x]["popularity"] or customerPrefs[x]["popularity"] == "no preference":
+                E.add_constraint(props[x+1][key]["popularity"])
+            else:
+                E.add_constraint(~props[x+1][key]["popularity"])
+            
             genreList = movieStuff[3]
             if genreList == customerPrefs[x]["genre"] or customerPrefs[x]["genre"] == "no preference":
                 E.add_constraint(props[x+1][key]["genre"])
@@ -161,6 +175,7 @@ def example_theory(props, customerPrefs, movies):
                 E.add_constraint(~props[x+1][key]["certificate"])
             
             E.add_constraint(~props[x+1][key]["age"] >> ~props[x+1][key]["recommend"])
+            E.add_constraint(~props[x+1][key]["popularity"] >> ~props[x+1][key]["recommend"])
             E.add_constraint(~props[x+1][key]["runtime"] >> ~props[x+1][key]["recommend"])
             E.add_constraint(~props[x+1][key]["genre"] >> ~props[x+1][key]["recommend"])
             E.add_constraint(~props[x+1][key]["rating"] >> ~props[x+1][key]["recommend"])
@@ -241,12 +256,19 @@ def setUpProps(movies, customerNum):
                 runtime = movieRun("short")
             else:
                 runtime = movieRun("long")
+            pop = movieDict[6]
+            if int(pop) < 50000000:
+                popularity = moviePopularity("N")
+            elif int(pop) < 100000000:
+                popularity = moviePopularity("A")
+            else:
+                popularity = moviePopularity("P")
             genreList = movieDict[3]
             genre = movieGenre(genreList)
             rating = movieRating(movieDict[4])
             certificate = movieCertificate(movieDict[1])
             movieRec = recommendMovie(x+1,key)
-            propsDict[key] = {"recommend": movieRec, "age": year, "runtime": runtime, "genre": genre, "rating": rating, "certificate": certificate }
+            propsDict[key] = {"recommend": movieRec, "age": year, "popularity": popularity, "runtime": runtime, "genre": genre, "rating": rating, "certificate": certificate }
         allProps[x+1] = propsDict
     return allProps
         
