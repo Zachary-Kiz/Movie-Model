@@ -141,10 +141,10 @@ def example_theory(props, customerPrefs, movies):
             else:
                 E.add_constraint(~props[x+1][key]["runtime"])
 
-            pop = movieStuff[6]
-            if int(pop) < 50000000:
+            pop = movieStuff[5]
+            if pop < '50,000,000':
                 checkPop = moviePopularity("N")
-            elif int(pop) < 100000000:
+            elif pop < '100,000,000':
                 checkPop = moviePopularity("A")
             else:
                 checkPop = moviePopularity("P")
@@ -212,7 +212,7 @@ def GetMovies():
     movies = {}
     x= 0
     for col in file:
-        movies[col['Series_Title']] = col['Released_Year'], col['Certificate'], col['Runtime'], col['Genre'], col['IMDB_Rating'], col['Meta_score'], col['Gross']
+        movies[col['Series_Title']] = col['Released_Year'], col['Certificate'], col['Runtime'], col['Genre'], col['IMDB_Rating'], col['Gross']
         if x == 10:
             break
         x+=1
@@ -231,7 +231,7 @@ def GetMovies():
         else:
             movieList.append(genreList[0].lower())
         movieList.append(movies[key][4])
-        movieList.append(movies[key][6])
+        movieList.append(movies[key][5])
         movieDict[key] = movieList
 
     return movieDict
@@ -256,10 +256,10 @@ def setUpProps(movies, customerNum):
                 runtime = movieRun("short")
             else:
                 runtime = movieRun("long")
-            pop = movieDict[6]
-            if int(pop) < 50000000:
+            pop = movieDict[5]
+            if pop < '50,000,000':
                 popularity = moviePopularity("N")
-            elif int(pop) < 100000000:
+            elif pop < '100,000,000':
                 popularity = moviePopularity("A")
             else:
                 popularity = moviePopularity("P")
