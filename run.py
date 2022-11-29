@@ -21,6 +21,7 @@ customerNum = getCustomers()
 
 
 
+
 # To create propositions, create classes for them first, annotated with "@proposition" and the Encoding
 
 @proposition(E)
@@ -87,6 +88,16 @@ class recommendMovie:
 
     def __repr__(self):
         return f"{self.data} = {self.name}"
+
+@proposition(E)
+class customerPref:
+    def __init__(self, num, pref):
+        self.num = num
+        self.pref = pref
+    
+    def __repr__(self):
+        return f"Cust{self.num}.{self.pref}"
+
 
 
 # Different classes for propositions are useful because this allows for more dynamic constraint creation
@@ -189,7 +200,7 @@ def GetMovies():
         movies[col['Series_Title']] = col['Released_Year'], col['Certificate'], col['Runtime'], col['Genre'], col['IMDB_Rating'], col['Meta_score'], col['Gross']
         # Set x to however many movies you wish to include in the model
         # Using all 1000 with more than one customer can be slow
-        if x == 100:
+        if x == 67:
             break
         x+=1
         
@@ -248,6 +259,71 @@ def setUpProps(movies, customerNum):
         allProps[x+1] = propsDict
 
     return allProps
+
+def customerProps():
+    """
+    This function is used to set up the set of propositions that represent the customer's preferences
+    Return Value: custDict - a dictionary of propostions representing the customer's preferences
+    """
+
+    allDict = {}
+    for n in range(customerNum):
+        num = n + 1
+
+        # Create dictionary
+        custDict = {}
+
+        # Create propositions for each genre
+        genreList = ["action", "adventure", "animation", "biography", "comedy", "crime", "drama", 
+        "fantasy", "history", "horror", "mystery", "romance", "sci-fi", "thriller", "western" ]
+        custGenres = []
+        for genre in genreList:
+            custGen = customerPref(num,genre)
+            custGenres.append(custGen)
+        custDict["genre"] = custGenres
+
+        # Create propositions for each IMDB score
+        custScores = []
+        for x in range(10):
+            if x >= 7:
+                custScore = customerPref(num,x)
+                custScores.append(custScore)
+        custDict["rating"] = custScores
+
+        # Create propositions for each decade
+        custAge = []
+        for x in range(2):
+            for y in range(10):
+                mil = x+1
+                if mil == 2 and y >= 3:
+                    break
+                if mil == 1:
+                    custTime = customerPref(num, str(mil) + "9" + str(y) + "0s")
+                    custAge.append(custTime)
+                else:
+                    custTime = customerPref(num, str(mil) + "0" + str(y) + "0s")
+                    custAge.append(custTime)
+        custDict["age"] = custAge
+
+        # Create props for movie lengths
+        short = customerPref(num, "short")
+        long = customerPref(num, "long")
+        custDict["runtime"] = [short,long]
+
+        # Create props for each rating
+        certList = ["U", "UA", "PG-13", "A", "R"]
+        custCert = []
+        for cert in certList:
+            custProp = customerPref(num, str(cert))
+            custCert.append(custProp)
+        custDict["certificate"] = custCert
+
+        allDict[num] = custDict
+    
+
+    return allDict
+
+
         
 
 
@@ -489,6 +565,81 @@ def test_recs(props, customerPrefs, movies):
 
     return E
 
+def modelAll(props, customerPrefs, movies):
+
+    
+    for x in range(customerNum):
+
+        num = x + 1
+        constraint.add_exactly_one(E, custProps[num]["genre"])
+        constraint.add_exactly_one(E, custProps[num]["rating"])
+        constraint.add_exactly_one(E, custProps[num]["age"])
+        constraint.add_exactly_one(E, custProps[num]["runtime"])
+        constraint.add_exactly_one(E, custProps[num]["certificate"])
+
+        for key in movies.keys():
+            for prop in custProps[num]["genre"]:
+                movie = movies[key][3]
+                if str(prop.pref) == movie:
+                    E.add_constraint(prop >> props[num][key]["genre"])
+                    E.add_constraint(~prop >> ~props[num][key]["genre"] )
+    
+        for key in movies.keys():
+            for prop in custProps[num]["rating"]:
+                movie = movies[key][4]
+                if float(prop.pref) <= float(movie):
+                    E.add_constraint(prop >> props[num][key]["rating"])
+                else:
+                    E.add_constraint(prop >> ~props[num][key]["rating"])
+
+
+        for key in movies.keys():
+            for prop in custProps[num]["age"]:
+                movie = movies[key][0]
+                if str(prop.pref) == movie:
+                    E.add_constraint(prop >> props[num][key]["age"])
+                    E.add_constraint(~prop >> ~props[num][key]["age"])
+
+        for key in movies.keys():
+            for prop in custProps[num]["runtime"]:
+                movie = movies[key][2]
+                if int(movie) < 120:
+                    movie = "short"
+                else:
+                    movie = "long"
+                if str(prop.pref) == movie:
+                    E.add_constraint(prop >> props[num][key]["runtime"])
+                    E.add_constraint(~prop >> ~props[num][key]["runtime"])
+
+        for key in movies.keys():
+            for prop in custProps[num]["certificate"]:
+                movie = movies[key][1]
+                if str(prop.pref) == movie:
+                    E.add_constraint(prop >> props[num][key]["certificate"] )
+                    E.add_constraint(~prop >> ~props[num][key]["certificate"] )
+
+
+        
+
+        allRecs = []
+        for key in movies.keys():
+            E.add_constraint(~props[num][key]["age"] >> ~props[num][key]["recommend"])
+            E.add_constraint(~props[num][key]["rating"] >> ~props[num][key]["recommend"])
+            E.add_constraint(~props[num][key]["genre"] >> ~props[num][key]["recommend"])
+            E.add_constraint(~props[num][key]["runtime"] >> ~props[num][key]["recommend"])
+            E.add_constraint(~props[num][key]["certificate"] >> ~props[num][key]["recommend"])
+            allRecs.append(props[num][key]["recommend"])
+        constraint.add_exactly_one(E, allRecs)
+
+        if customerNum > 1:
+            for key in movies.keys():
+                movieVer = []
+                for x in range(customerNum):
+                    movieVer.append(props[x+1][key]["recommend"])
+                constraint.add_at_most_one(E,movieVer)
+    
+    return E
+
 
 def main():
 
@@ -501,30 +652,43 @@ def main():
     # Initialize list of customer decisions
     customerList = []
 
-    print("Enter 'np' to any input to indicate no preference")
+    getChoice = input("Enter 1 for regular model, 2 for user input version: ")
+    choiceOpts = ["1","2","3","4"]
+    while getChoice not in choiceOpts:
+        print("invalid input. Please try again")
+        getChoice = input("Enter 1 for regular model, 2 for user input version: ")
+
+    if getChoice == "1":
+        T = modelAll(props, customerList, movies)
+
+    elif getChoice == "2":
+
+        print("Enter 'np' to any input to indicate no preference")
 
     # For each customer create a dictionary of their preferences and add it to customerList
-    for x in range(customerNum):
-        num = x + 1
-        print("Customer", num)
-        customerPrefs = {"genre": "", "rating": "", "runtime": "" , "popularity": "", "age" : "", "certificate": ""}
-        getGenres(customerPrefs)
-        print()
-        getQuality(customerPrefs)
-        print()
-        getRuntime(customerPrefs)
-        print()
-        getPopularity(customerPrefs)
-        print()
-        getAge(customerPrefs)
-        print()
-        getCertificate(customerPrefs)
-        print()
-        customerList.append(customerPrefs)
+        for x in range(customerNum):
+            num = x + 1
+            print("Customer", num)
+            customerPrefs = {"genre": "", "rating": "", "runtime": "" , "popularity": "", "age" : "", "certificate": ""}
+            getGenres(customerPrefs)
+            print()
+            getQuality(customerPrefs)
+            print()
+            getRuntime(customerPrefs)
+            print()
+            getPopularity(customerPrefs)
+            print()
+            getAge(customerPrefs)
+            print()
+            getCertificate(customerPrefs)
+            print()
+            customerList.append(customerPrefs)
+        
+        T = example_theory(props, customerList, movies)
 
-    print(customerList)
+    #print(customerList)
 
-    T = test_recs(props, customerList, movies)
+    
     #T = example_theory(props, customerList, movies)
     # Don't compile until you're finished adding all your constraints!
     T = T.compile()
@@ -537,7 +701,7 @@ def main():
     if solution != None:
         for key,value in solution.items():
             key = str(key)
-            if key[1] != "." and value:
+            if key[1] != "." and value and str(key[0:4]) != "Cust" :
                 solDict[key] = value
         print(solDict) 
     else:
@@ -549,6 +713,7 @@ def main():
     
 # Get number of customers
 
+custProps = customerProps()
 
 main()
 
