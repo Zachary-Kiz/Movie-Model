@@ -2,6 +2,9 @@
 from curses.ascii import isdigit
 from bauhaus import Encoding, proposition, constraint
 from bauhaus.utils import count_solutions, likelihood
+import sys
+
+sys.setrecursionlimit(10000)
 
 # Encoding that will store all of your constraints
 E = Encoding()
@@ -17,7 +20,8 @@ def getCustomers():
         customerNum = input("Please enter the number of customers that wish to rent a movie: ")
     return int(customerNum)
 
-customerNum = getCustomers()
+
+
 
 
 
@@ -60,7 +64,6 @@ class movieRating:
         return f"I.{self.data}"
 
 @proposition(E)
-
 class moviePopularity:
 
     def __init__(self, data):
@@ -70,7 +73,6 @@ class moviePopularity:
         return f"P.{self.data}"
 
 @proposition(E)
-
 class movieCertificate:
 
     def __init__(self, data):
@@ -78,6 +80,7 @@ class movieCertificate:
 
     def __repr__(self):
         return f"C.{self.data}"
+
 
 @proposition(E)
 class recommendMovie:
@@ -90,14 +93,13 @@ class recommendMovie:
         return f"{self.data} = {self.name}"
 
 @proposition(E)
-class rentMovie:
-
-    def __init__(self, customerNum, movieName):
-        self.customerNum = customerNum
-        self.movieName = movieName
-
+class customerPref:
+    def __init__(self, num, pref):
+        self.num = num
+        self.pref = pref
+    
     def __repr__(self):
-        return f"{self.customerNum}.{self.movieName}"
+        return f"Cust{self.num}.{self.pref}"
 
 
 
@@ -131,12 +133,12 @@ def GetMovies():
     file = csv.DictReader(filename)
     
     movies = {}
-    x= 0
+    x= 1
     for col in file:
         movies[col['Series_Title']] = col['Released_Year'], col['Certificate'], col['Runtime'], col['Genre'], col['IMDB_Rating'], col['Meta_score'], col['Gross']
         # Set x to however many movies you wish to include in the model
         # Using all 1000 with more than one customer can be slow
-        if x == 90:
+        if x == 100:
             break
         x+=1
         
@@ -160,7 +162,22 @@ def GetMovies():
         else:
             movieList.append(genreList[0].lower())
         movieList.append(movies[key][4])
-        movieList.append(movies[key][5])
+        gross = movies[key][6]
+        gross = gross.split(",")
+        check = ""
+        for val in gross:
+            check += val
+        gross = check
+        if gross == "":
+            gross = "N"
+        elif int(gross) < 50000000:
+            gross = "N"
+        elif int(gross) < 100000000:
+            gross = 'A'
+        else:
+            gross = 'P'
+        movieList.append(gross)
+
         movieDict[key] = movieList
 
     return movieDict
@@ -179,25 +196,32 @@ def setUpProps(movies, customerNum):
         propsDict = {}
         for key in movies.keys():
             movieDict = movies[key]
+            # Check if movie is short or long
             year = movieAge(movieDict[0])
             run = movieDict[2]
+            # Create proposition
             if int(run) <= 120:
                 runtime = movieRun("short")
             else:
                 runtime = movieRun("long")
+
+            # Get popularity from box office results
             pop = movieDict[5]
-            if pop < '50,000,000':
-                popularity = moviePopularity("N")
-            elif pop < '100,000,000':
-                popularity = moviePopularity("A")
-            else:
-                popularity = moviePopularity("P")
+            pop = pop.split(",")
+            check = ""
+            for val in pop:
+                check += str(val)
+            
+            pop = check
+            popularity = moviePopularity(pop)
+
+            # Create propositions for movie's genre, IMDB rating, rating, and whether movie is rented
             genreList = movieDict[3]
             genre = movieGenre(genreList)
             rating = movieRating(movieDict[4])
             certificate = movieCertificate(movieDict[1])
             movieRec = recommendMovie(x+1,key)
-            propsDict[key] = {"recommend": movieRec, "age": year, "popularity": popularity, "runtime": runtime, "genre": genre, "rating": rating, "certificate": certificate }
+            propsDict[key] = {"recommend": movieRec, "age": year, "runtime": runtime, "genre": genre, "rating": rating, "certificate": certificate, "popularity": popularity }
         allProps[x+1] = propsDict
     
 
@@ -607,6 +631,7 @@ def testProps():
 
 def main():
 
+
     # Put movies in dictionary
     movies = GetMovies()
 
@@ -691,9 +716,8 @@ def main():
             getAll = False
 
 
-    print(customerList)
 
-    T = example_theory(props, customerList, movies)
+    
     # Don't compile until you're finished adding all your constraints!
     T = T.compile()
     # After compilation (and only after), you can check some of the properties
@@ -732,3 +756,4 @@ def main():
 
 
 main()
+
