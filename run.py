@@ -347,14 +347,14 @@ def getQuality(customerPrefs):
     """
     # Prompt the customer on what quality of movie they are looking for
     print("What quality of movie are you looking for? This program uses IMDB scores to determine quality")
-    customerQual = input( "Enter a number from 0-9 to indicate the minimum level of quality: ")
+    customerQual = input( "Enter a number from 7-9 to indicate the minimum level of quality: ")
 
-    check = ["0","1","2","3","4","5","6","7","8","9","np"]
+    check = ["7","8","9","np"]
 
     # Check that input is valid
     while customerQual not in check:
         print("Please enter a valid input")
-        customerQual = input("Enter a number from 0-9 to indicate the minimum level of quality: ")
+        customerQual = input("Enter a number from 7-9 to indicate the minimum level of quality: ")
 
     # Add customer preference to dictionary customerPrefs
     if customerQual == "np":
@@ -534,6 +534,14 @@ def example_theory(props,customerNum, movies,choices, customerList):
             if len(customerList) > 1:
                 if customerList[x]["rating"] == "no preference":
                     E.add_constraint(props[num][key]["rating"])
+                else:
+                    for prop in custProps[num]["rating"]:
+                        movie = movies[key][4]
+                        if float(prop.pref) <= float(movie):
+                            E.add_constraint(prop >> props[num][key]["rating"])
+                        else:
+                            E.add_constraint(prop >> ~props[num][key]["rating"])
+
             elif len(customerList) == 1 and customerList[0]["rating"] == "no preference":
                 E.add_constraint(props[num][key]["rating"])
             else:
