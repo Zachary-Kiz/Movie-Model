@@ -180,6 +180,7 @@ def GetMovies():
 
         movieDict[key] = movieList
 
+
     return movieDict
 
 def setUpProps(movies, customerNum):
